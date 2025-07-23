@@ -16,6 +16,10 @@ import lombok.*;
                 query = "SELECT u FROM User u WHERE u.name = :name"
         ),
         @NamedQuery(
+                name  = "User.findById",
+                query = "SELECT u FROM User u WHERE u.id = :id"
+        ),
+        @NamedQuery(
                 name  = "User.findByEmailAndPassword",
                 query = "SELECT u FROM User u WHERE u.email = :email AND u.password = :password"
         ),
@@ -35,7 +39,7 @@ import lombok.*;
 public class User implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Integer id;
 
     @Column(nullable = false, unique = true)
     private String name;

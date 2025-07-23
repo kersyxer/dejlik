@@ -7,9 +7,6 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class UpdateUserRequest {
+public class DeleteUserRequest {
     private Integer id;
-    private String name;
-    private String password;
-    private String role;
 }

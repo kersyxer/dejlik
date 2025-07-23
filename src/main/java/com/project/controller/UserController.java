@@ -11,7 +11,6 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -65,9 +64,9 @@ public class UserController {
     }
 
     @DeleteMapping("/users/deleteUser")
-    public ResponseEntity<String> deleteUser(@RequestBody Integer id) {
+    public ResponseEntity<String> deleteUser(@RequestBody DeleteUserRequest request) {
         try {
-            userService.deleteUser(id);
+            userService.deleteUser(request.getId());
             return ResponseEntity.ok("Deleted");
         } catch (UserException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
@@ -77,7 +76,12 @@ public class UserController {
     @PutMapping("/users/updateUser")
     public ResponseEntity<String> updateUser(@RequestBody UpdateUserRequest req) {
         try {
-            userService.updateUser(req);
+            userService.updateUser(
+                    req.getId(),
+                    req.getName(),
+                    req.getPassword(),
+                    req.getRole()
+            );
             return ResponseEntity.ok("Updated");
         } catch (UserException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)

@@ -62,40 +62,35 @@ public class UserServiceJPA implements UserService{
 
     @Override
     public void deleteUser(Integer id) throws UserException {
-        int deletedCount = em
-                .createNamedQuery("User.deleteById")
-                .setParameter("id", id)
-                .executeUpdate();
-        if (deletedCount == 0) {
-            throw new UserException("Cannot delete – user not found, id: " + id);
+        User existing = em.find(User.class, id);
+        if (existing == null) {
+            throw new UserException("User not found with id: " + id);
         }
+        em.remove(existing);
     }
 
     @Override
-    public void updateUser(UpdateUserRequest req) throws UserException {
-        User existing = em.createNamedQuery("User.findByEmail", User.class)
-                .setParameter("email", req.getEmail())
-                .getResultStream()
-                .findFirst()
-                .orElseThrow(() -> new UserException("User not found: " + req.getEmail()));
+    public void updateUser(Integer id, String name, String password, String role) throws UserException {
+        User existing = em.find(User.class, id);
+        if(existing == null){
+            throw new UserException("User not found with id: " + id);
+        }
 
-        if (req.getName() != null && !req.getName().isBlank()) {
+        if (name != null && !name.isBlank()) {
             boolean nameTaken = em.createNamedQuery("User.findByName", User.class)
-                    .setParameter("name", req.getName())
+                    .setParameter("name", name)
                     .getResultStream()
-                    .anyMatch(u -> !u.getEmail().equals(req.getEmail()));
+                    .anyMatch(u -> !u.getId().equals(id));
             if (nameTaken) {
-                throw new UserException("Name already taken: " + req.getName());
+                throw new UserException("Name already taken: " + name);
             }
-            existing.setName(req.getName());
+            existing.setName(name);
         }
-
-        if (req.getRole() != null && !req.getRole().isBlank()) {
-            existing.setRole(req.getRole());
+        if (role != null && !role.isBlank()) {
+            existing.setRole(role);
         }
-
-        if (req.getPassword() != null && !req.getPassword().isBlank()) {
-            String hashed = passwordEncoder.encode(req.getPassword());
+        if (password != null && !password.isBlank()) {
+            String hashed = passwordEncoder.encode(password);
             existing.setPassword(hashed);
         }
     }

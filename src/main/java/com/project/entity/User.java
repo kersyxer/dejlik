@@ -20,8 +20,8 @@ import lombok.*;
                 query = "SELECT u FROM User u WHERE u.email = :email AND u.password = :password"
         ),
         @NamedQuery(
-                name  = "User.deleteByEmail",
-                query = "DELETE FROM User u WHERE u.email = :email"
+                name  = "User.deleteById",
+                query = "DELETE FROM User u WHERE u.id = :id"
         ),
         @NamedQuery(
                 name  = "User.allUsers",

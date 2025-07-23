@@ -1,9 +1,6 @@
 package com.project.controller;
 
-import com.project.dto.LoginRequest;
-import com.project.dto.LoginResponse;
-import com.project.dto.UpdateUserRequest;
-import com.project.dto.UserDto;
+import com.project.dto.*;
 import com.project.entity.User;
 import com.project.security.JwtUtil;
 import com.project.service.UserException;
@@ -23,9 +20,15 @@ public class UserController {
     private final JwtUtil jwtUtil;
 
     @PostMapping("/users/addUser")
-    public ResponseEntity<Boolean> addUser(@RequestBody User user) {
+    public ResponseEntity<Boolean> addUser(@RequestBody AddUserRequest request) {
         try {
-            userService.addUser(user);
+            User u = User.builder()
+                    .email(request.getEmail())
+                    .name(request.getName())
+                    .password(request.getPassword())
+                    .role(request.getRole())
+                    .build();
+            userService.addUser(u);
             return ResponseEntity.ok(true);
         } catch (UserException e) {
             return ResponseEntity.badRequest().body(false);
@@ -62,16 +65,12 @@ public class UserController {
     }
 
     @DeleteMapping("/users/deleteUser")
-    public ResponseEntity<String> deleteUser(@RequestBody Map<String, String> body) {
-        String email = body.get("email");
+    public ResponseEntity<String> deleteUser(@RequestBody Integer id) {
         try {
-            userService.deleteUser(email);
-            return ResponseEntity
-                    .ok("Deleted");
+            userService.deleteUser(id);
+            return ResponseEntity.ok("Deleted");
         } catch (UserException e) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
 

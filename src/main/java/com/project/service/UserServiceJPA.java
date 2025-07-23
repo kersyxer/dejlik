@@ -61,13 +61,13 @@ public class UserServiceJPA implements UserService{
     }
 
     @Override
-    public void deleteUser(String email) throws UserException {
+    public void deleteUser(Integer id) throws UserException {
         int deletedCount = em
-                .createNamedQuery("User.deleteByEmail")
-                .setParameter("email", email)
+                .createNamedQuery("User.deleteById")
+                .setParameter("id", id)
                 .executeUpdate();
         if (deletedCount == 0) {
-            throw new UserException("Cannot delete – user not found: " + email);
+            throw new UserException("Cannot delete – user not found, id: " + id);
         }
     }
 

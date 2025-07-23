@@ -8,5 +8,4 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class DeleteUserRequest {
-    private Integer id;
 }

@@ -6,7 +6,7 @@ import com.project.entity.User;
 import java.util.List;
 
 public interface UserService {
-    void addUser(User user) throws UserException;
+    void createUser(User user) throws UserException;
     boolean loginUser(String email, String password) throws UserException;
     void deleteUser(Integer id) throws UserException;
     void updateUser(Integer id, String name, String password, String role) throws UserException;

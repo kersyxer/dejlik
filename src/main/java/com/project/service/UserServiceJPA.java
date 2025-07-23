@@ -24,7 +24,7 @@ public class UserServiceJPA implements UserService{
     }
 
     @Override
-    public void addUser(User user) throws UserException {
+    public void createUser(User user) throws UserException {
         boolean emailExists = em.createNamedQuery("User.findByEmail", User.class)
                 .setParameter("email", user.getEmail())
                 .getResultStream()

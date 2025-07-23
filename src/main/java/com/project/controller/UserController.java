@@ -16,8 +16,8 @@ import java.util.List;
 public class UserController {
     private final UserService userService;
 
-    @PostMapping("/addUser")
-    public ResponseEntity<Boolean> addUser(@RequestBody AddUserRequest request) {
+    @PostMapping("/create")
+    public ResponseEntity<Boolean> createUser(@RequestBody CreateUserRequest request) {
         try {
             User u = User.builder()
                     .email(request.getEmail())
@@ -25,28 +25,28 @@ public class UserController {
                     .password(request.getPassword())
                     .role(request.getRole())
                     .build();
-            userService.addUser(u);
+            userService.createUser(u);
             return ResponseEntity.ok(true);
         } catch (UserException e) {
             return ResponseEntity.badRequest().body(false);
         }
     }
 
-    @DeleteMapping("/deleteUser")
-    public ResponseEntity<String> deleteUser(@RequestBody DeleteUserRequest request) {
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteUser(@PathVariable Integer id, @RequestBody DeleteUserRequest request) {
         try {
-            userService.deleteUser(request.getId());
+            userService.deleteUser(id);
             return ResponseEntity.ok("Deleted");
         } catch (UserException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
 
-    @PutMapping("/updateUser")
-    public ResponseEntity<String> updateUser(@RequestBody UpdateUserRequest req) {
+    @PutMapping("/{id}")
+    public ResponseEntity<String> updateUser(@PathVariable Integer id, @RequestBody UpdateUserRequest req) {
         try {
             userService.updateUser(
-                    req.getId(),
+                    id,
                     req.getName(),
                     req.getPassword(),
                     req.getRole()

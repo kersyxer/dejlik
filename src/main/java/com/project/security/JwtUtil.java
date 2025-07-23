@@ -53,6 +53,10 @@ public class JwtUtil {
                 .getBody();
     }
 
+    public long getAccessTokenValiditySeconds() {
+        return accessTokenMinutes * 60;
+    }
+
     public String extractSubject(String token) {
         return extractAllClaims(token).getSubject();
     }

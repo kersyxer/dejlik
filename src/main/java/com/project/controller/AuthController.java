@@ -40,7 +40,8 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Token generation failed: " + e.getMessage());
             }
             UserDto dto = new UserDto(user.getId(), user.getName(), user.getEmail(), user.getRole());
-            return ResponseEntity.ok(new LoginResponse(accessToken, refreshToken, dto));
+            long expired_in = jwtUtil.getAccessTokenValiditySeconds();
+            return ResponseEntity.ok(new LoginResponse(accessToken, refreshToken, expired_in, dto));
         } catch (UserException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }

@@ -108,4 +108,13 @@ public class UserServiceJPA implements UserService{
     public List<User> getAllUsers() {
         return em.createNamedQuery("User.allUsers", User.class).getResultList();
     }
+
+    @Override
+    public User findById(Integer id) throws UserException {
+        User u = em.find(User.class, id);
+        if(u == null){
+            throw new UserException("User not found with id: " + id);
+        }
+        return u;
+    }
 }

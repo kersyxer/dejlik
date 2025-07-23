@@ -11,6 +11,7 @@ public interface UserService {
     void deleteUser(Integer id) throws UserException;
     void updateUser(Integer id, String name, String password, String role) throws UserException;
     User findByEmail(String email) throws UserException;
+    User findById(Integer id) throws UserException;
     List<User> getAllUsers();
 }
 

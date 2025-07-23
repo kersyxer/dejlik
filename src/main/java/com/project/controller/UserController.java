@@ -65,4 +65,15 @@ public class UserController {
                 .toList();
         return ResponseEntity.ok(dtos);
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<UserDto> getUserById(@PathVariable Integer id) {
+        try {
+            User u =  userService.findById(id);
+            UserDto dto = new UserDto(u.getId(), u.getName(), u.getEmail(), u.getRole());
+            return ResponseEntity.ok(dto);
+        }catch (UserException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+    }
 }

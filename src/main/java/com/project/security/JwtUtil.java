@@ -26,7 +26,7 @@ public class JwtUtil {
         return new Date(now().getTime() + minutes * 60_000);
     }
 
-    public String generateAccessToken(Integer userID, String name, String role) {
+    public String generateAccessToken(UUID userID, String name, String role) {
         return Jwts.builder()
                 .setSubject(userID.toString())
                 .claim("name", name)
@@ -37,7 +37,7 @@ public class JwtUtil {
                 .compact();
     }
 
-    public String generateRefreshToken(Integer userID) {
+    public String generateRefreshToken(UUID userID) {
         return Jwts.builder()
                 .setSubject(userID.toString())
                 .setIssuedAt(now())

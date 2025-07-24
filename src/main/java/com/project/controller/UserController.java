@@ -9,6 +9,7 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/users")
@@ -33,7 +34,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteUser(@PathVariable Integer id) {
+    public ResponseEntity<String> deleteUser(@PathVariable UUID id) {
         try {
             userService.deleteUser(id);
             return ResponseEntity.ok("Deleted");
@@ -43,7 +44,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<String> updateUser(@PathVariable Integer id, @RequestBody UpdateUserRequest req) {
+    public ResponseEntity<String> updateUser(@PathVariable UUID id, @RequestBody UpdateUserRequest req) {
         try {
             userService.updateUser(
                     id,
@@ -67,11 +68,10 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserDto> getUserById(@PathVariable Integer id) {
+    public ResponseEntity<UserDto> getUserById(@PathVariable UUID id) {
         try {
             User u =  userService.findById(id);
-            UserDto dto = new UserDto(u.getId(), u.getName(), u.getEmail(), u.getRole());
-            return ResponseEntity.ok(dto);
+            return ResponseEntity.ok(new UserDto(u.getId(), u.getName(), u.getEmail(), u.getRole()));
         }catch (UserException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }

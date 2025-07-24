@@ -2,6 +2,7 @@ package com.project.controller;
 
 import com.project.dto.LoginRequest;
 import com.project.dto.LoginResponse;
+import com.project.dto.RefreshTokenRequest;
 import com.project.dto.UserDto;
 import com.project.entity.User;
 import com.project.security.JwtUtil;
@@ -15,6 +16,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/auth")
@@ -47,4 +51,16 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/getAccessToken")
+    public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest req) {
+        try{
+            var claims = jwtUtil.extractAllClaims(req.getRefreshToken());
+            UUID userId = UUID.fromString(claims.getSubject());
+            User user = userService.findById(userId);
+            String newAccess =  jwtUtil.generateAccessToken(user.getId(), user.getName(), user.getRole());
+            return ResponseEntity.ok(Map.of("accessToken", newAccess));
+        } catch (JwtException | UserException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token");
+        }
+    }
 }

@@ -2,7 +2,10 @@ package com.project.entity;
 
 import jakarta.persistence.*;
 import java.io.Serializable;
+import java.util.UUID;
+
 import lombok.*;
+import org.hibernate.annotations.GenericGenerator;
 
 @Entity
 @Table(name = "app_user")
@@ -38,8 +41,13 @@ import lombok.*;
 @Builder
 public class User implements Serializable {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    @GeneratedValue(generator = "UUID")
+    @GenericGenerator(
+            name = "UUID",
+            strategy = "org.hibernate.id.UUIDGenerator"
+    )
+    @Column(nullable = false, updatable = false)
+    private UUID id;
 
     @Column(nullable = false, unique = true)
     private String name;

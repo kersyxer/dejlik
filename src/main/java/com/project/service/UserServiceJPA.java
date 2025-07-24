@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -61,7 +62,7 @@ public class UserServiceJPA implements UserService{
     }
 
     @Override
-    public void deleteUser(Integer id) throws UserException {
+    public void deleteUser(UUID id) throws UserException {
         User existing = em.find(User.class, id);
         if (existing == null) {
             throw new UserException("User not found with id: " + id);
@@ -70,7 +71,7 @@ public class UserServiceJPA implements UserService{
     }
 
     @Override
-    public void updateUser(Integer id, String name, String password, String role) throws UserException {
+    public void updateUser(UUID id, String name, String password, String role) throws UserException {
         User existing = em.find(User.class, id);
         if(existing == null){
             throw new UserException("User not found with id: " + id);
@@ -110,7 +111,7 @@ public class UserServiceJPA implements UserService{
     }
 
     @Override
-    public User findById(Integer id) throws UserException {
+    public User findById(UUID id) throws UserException {
         User u = em.find(User.class, id);
         if(u == null){
             throw new UserException("User not found with id: " + id);

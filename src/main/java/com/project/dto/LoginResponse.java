@@ -10,6 +10,6 @@ import lombok.NoArgsConstructor;
 public class LoginResponse {
     private String accessToken;
     private String refreshToken;
-    private long expires_in;
+    private int expires_in;
     private UserDto user;
 }

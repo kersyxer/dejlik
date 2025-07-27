@@ -13,17 +13,17 @@ public class JwtUtil {
     private String secretKey;
 
     @Value("${jwt.access.expiration}")
-    private long accessTokenMinutes;
+    private int accessTokenMinutes;
 
     @Value("${jwt.refresh.expiration}")
-    private long refreshTokenMinutes;
+    private int refreshTokenMinutes;
 
     private Date now() {
         return new Date();
     }
 
-    private Date expiration(int minutes) {
-        return new Date(now().getTime() + minutes * 60_000);
+    public Date expiration(int minutes) {
+        return new Date(now().getTime() + (long) minutes * 60 * 1000);
     }
 
     public String generateAccessToken(UUID userID, String name, String role) {
@@ -32,7 +32,7 @@ public class JwtUtil {
                 .claim("name", name)
                 .claim("role", role)
                 .setIssuedAt(now())
-                .setExpiration(expiration((int) accessTokenMinutes))
+                .setExpiration(expiration(accessTokenMinutes))
                 .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
@@ -41,7 +41,7 @@ public class JwtUtil {
         return Jwts.builder()
                 .setSubject(userID.toString())
                 .setIssuedAt(now())
-                .setExpiration(expiration((int) refreshTokenMinutes))
+                .setExpiration(expiration(refreshTokenMinutes))
                 .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
@@ -53,12 +53,12 @@ public class JwtUtil {
                 .getBody();
     }
 
-    public long getAccessTokenValiditySeconds() {
+    public int getAccessTokenValiditySeconds() {
         return accessTokenMinutes * 60;
     }
 
-    public String extractSubject(String token) {
-        return extractAllClaims(token).getSubject();
+    public int getRefreshTokenValiditySeconds() {
+        return refreshTokenMinutes;
     }
 
     public boolean isTokenExpired(String token) {

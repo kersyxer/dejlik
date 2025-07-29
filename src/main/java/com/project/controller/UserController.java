@@ -44,7 +44,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<String> updateUser(@PathVariable UUID id, @RequestBody UpdateUserRequest req) {
+    public ResponseEntity<Boolean> updateUser(@PathVariable UUID id, @RequestBody UpdateUserRequest req) {
         try {
             userService.updateUser(
                     id,
@@ -52,10 +52,10 @@ public class UserController {
                     req.getPassword(),
                     req.getRole()
             );
-            return ResponseEntity.ok("Updated");
+            return ResponseEntity.ok(true);
         } catch (UserException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(e.getMessage());
+                    .body(false);
         }
     }
 

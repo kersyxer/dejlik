@@ -41,9 +41,9 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth->auth
-                        .requestMatchers("/auth/login", "/auth/getAccessToken", "/auth/logout").permitAll()
+                        .requestMatchers("/auth/login", "/auth/getAccessToken", "/auth/logout", "/api/clickflare/sync").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/users/list").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/users/list", "Selectors/Users", "Selectors/TrafficSources", "Selectors/AffiliateNetworks").authenticated()
                         .requestMatchers(HttpMethod.POST,"/users/create").hasRole("ADMIN")
                         .requestMatchers("/users/{id}").hasRole("ADMIN")
                         .anyRequest().authenticated()

@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -17,11 +18,13 @@ public class UserServiceJPA implements UserService{
     @PersistenceContext
     private EntityManager em;
 
+    private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserServiceJPA(EntityManager entityManager ,PasswordEncoder passwordEncoder) {
+    public UserServiceJPA(EntityManager entityManager ,PasswordEncoder passwordEncoder, UserRepository userRepository) {
         this.em = entityManager;
         this.passwordEncoder = passwordEncoder;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -117,5 +120,12 @@ public class UserServiceJPA implements UserService{
             throw new UserException("User not found with id: " + id);
         }
         return u;
+    }
+
+    @Override
+    public List<String> findAllUsernamesByRole(String role) {
+        return userRepository.findByRole(role).stream()
+                .map(User::getName)
+                .collect(Collectors.toList());
     }
 }

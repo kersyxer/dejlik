@@ -1,5 +1,6 @@
 package com.project.clickflare;
 
+import com.google.common.util.concurrent.RateLimiter;
 import com.project.dto.ClickFlareReportResponseDto;
 import com.project.dto.ReportItemDto;
 import com.project.dto.TotalsDto;
@@ -16,6 +17,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,34 +32,44 @@ public class ClickFlareDataSyncService {
     private final DailyStatsRepository dailyStatsRepository;
     private final UserService userService;
 
+    private final RateLimiter rateLimiter = RateLimiter.create(2.0);
+    private final ExecutorService executor = Executors.newFixedThreadPool(5);
+
     public void syncDailyStats(LocalDate startDate, LocalDate endDate) {
-        int page = 1;
+        List<ReportItemDto> allItems = Collections.synchronizedList(new ArrayList<>());
         int pageSize = 1000;
-        int totalItems = 0;
-        List<ReportItemDto> allItems = new ArrayList<>();
 
-        do {
-            ClickFlareReportResponseDto response = fetchReport(startDate, endDate, page, pageSize);
-            assert response != null;
-            List<ReportItemDto> items = response.getItems();
-            if (items == null || items.isEmpty()) {
-                log.warn("❗️No items found in response");
-                break;
-            }
-            log.info("✅ Parsed {} items", items.size());
-            allItems.addAll(items);
-            TotalsDto totals = response.getTotals();
-            if (totals == null) {
-                log.warn("❗️No totals in response");
-                break;
-            }
+        // Спочатку отримуємо загальну кількість
+        ClickFlareReportResponseDto firstResponse = fetchReport(startDate, endDate, 1, pageSize);
+        if (firstResponse == null || firstResponse.getItems() == null) {
+            log.warn("❌ Empty or null response from ClickFlare");
+            return;
+        }
+        int total = firstResponse.getTotals().getCounter();
+        int totalPages = (int) Math.ceil((double) total / pageSize);
 
-            totalItems = totals.getCounter();
-            page++;
+        // Додаємо першу сторінку одразу
+        allItems.addAll(firstResponse.getItems());
 
-        } while (allItems.size() < totalItems);
+        // Всі інші сторінки паралельно
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        for (int page = 2; page <= totalPages; page++) {
+            final int currentPage = page;
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                rateLimiter.acquire();
+                ClickFlareReportResponseDto response = fetchReport(startDate, endDate, currentPage, pageSize);
+                if (response != null && response.getItems() != null) {
+                    allItems.addAll(response.getItems());
+                    log.info("✅ Parsed page {} with {} items", currentPage, response.getItems().size());
+                }
+            }, executor);
+            futures.add(future);
+        }
 
-        log.info("📊 Total items collected: {}", allItems.size());
+        // Очікуємо завершення всіх потоків
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+        log.info("📊 Total collected items: {}", allItems.size());
         saveStats(allItems);
     }
 
@@ -84,7 +98,7 @@ public class ClickFlareDataSyncService {
                     .bodyToMono(ClickFlareReportResponseDto.class)
                     .block();
         } catch (Exception e) {
-            log.error("Failed to fetch report from ClickFlare: {}", e.getMessage(), e);
+            log.error("Failed to fetch report from ClickFlare: (page {}): {}", page, e.getMessage());
             return null;
         }
     }

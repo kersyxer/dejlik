@@ -3,13 +3,16 @@ package com.project.config; // Або інший відповідний паке
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import reactor.netty.http.client.HttpClient;
 
 import java.time.Duration;
+import java.util.List;
 
 @Configuration // Це важливо, щоб Spring знайшов цей клас
 public class WebConfig implements WebMvcConfigurer { // Реалізуємо інтерфейс для налаштування Web MVC
@@ -35,5 +38,12 @@ public class WebConfig implements WebMvcConfigurer { // Реалізуємо і�
                 ))
                 .codecs(config -> config.defaultCodecs().maxInMemorySize(1024 * 1024 * 10))
                 .build();
+    }
+
+    @Override
+    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+        PageableHandlerMethodArgumentResolver resolver = new PageableHandlerMethodArgumentResolver();
+        resolver.setMaxPageSize(30); // Встановлюємо максимальний розмір сторінки тут
+        resolvers.add(resolver);
     }
 }

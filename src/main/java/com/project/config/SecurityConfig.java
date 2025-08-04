@@ -43,7 +43,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth->auth
                         .requestMatchers("/auth/login", "/auth/getAccessToken", "/auth/logout", "/api/clickflare/sync").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/users/list", "/Selectors/Users", "/Selectors/TrafficSources", "/Selectors/AffiliateNetworks", "stats/total").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/stats/total").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/users/list", "/Selectors/**").authenticated()
                         .requestMatchers(HttpMethod.POST,"/users/create").hasRole("ADMIN")
                         .requestMatchers("/users/{id}").hasRole("ADMIN")
                         .anyRequest().authenticated()

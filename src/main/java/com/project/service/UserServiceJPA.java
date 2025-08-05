@@ -128,4 +128,13 @@ public class UserServiceJPA implements UserService{
                 .map(User::getName)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public User findByUsername(String username) {
+        List<User> users = userRepository.findByName(username); // Повертає список користувачів
+        if (users.isEmpty()) {
+            throw new UserException("User not found with name: " + username);
+        }
+        return users.getFirst();
+    }
 }

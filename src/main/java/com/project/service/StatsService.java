@@ -37,4 +37,22 @@ public class StatsService {
             }
         }
     }
+
+    public Page<DailyOverallStatsDto> getDailyTotalsForUser(UUID userId, LocalDate start, LocalDate end, Optional<String> trafficSource, Pageable pageable) {
+        if (trafficSource.isPresent()) {
+            String trafficSourceNameBase = trafficSource.get();
+            if (start != null && end != null) {
+                return dailyStatsRepository.findCombinedDailyStatsForUserWithDates(userId, start, end, trafficSourceNameBase, pageable);
+            } else {
+                return dailyStatsRepository.findCombinedDailyStatsForUserWithoutDates(userId, trafficSourceNameBase, pageable);
+            }
+        } else {
+            if (start != null && end != null) {
+                return dailyStatsRepository.findAllCombinedDailyStatsForUserWithDates(userId, start, end, pageable);
+            } else {
+                return dailyStatsRepository.findAllCombinedDailyStatsForUserWithoutDates(userId, pageable);
+            }
+        }
+    }
+
 }

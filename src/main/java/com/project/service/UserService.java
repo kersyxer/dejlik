@@ -15,5 +15,6 @@ public interface UserService {
     User findById(UUID id) throws UserException;
     List<User> getAllUsers();
     List<String> findAllUsernamesByRole(String role);
+    User findByUsername(String username);
 }
 

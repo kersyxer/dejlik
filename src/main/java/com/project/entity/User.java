@@ -2,6 +2,7 @@ package com.project.entity;
 
 import jakarta.persistence.*;
 import java.io.Serializable;
+import java.util.Set;
 import java.util.UUID;
 
 import lombok.*;
@@ -61,4 +62,7 @@ public class User implements Serializable {
     @Builder.Default
     @Column(nullable = false, columnDefinition = "varchar(50) default 'USER'")
     private String role = "USER";
+
+    @OneToMany(mappedBy = "user")
+    private Set<Campaign> campaigns;
 }

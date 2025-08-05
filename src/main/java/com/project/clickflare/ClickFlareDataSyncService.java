@@ -4,10 +4,7 @@ import com.google.common.util.concurrent.RateLimiter;
 import com.project.dto.ClickFlareReportResponseDto;
 import com.project.dto.ReportItemDto;
 import com.project.dto.TotalsDto;
-import com.project.entity.Campaign;
-import com.project.entity.DailyStats;
-import com.project.entity.Partner;
-import com.project.entity.Source;
+import com.project.entity.*;
 import com.project.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -135,12 +132,16 @@ public class ClickFlareDataSyncService {
 
             // 3. Campaign
             Campaign campaign = campaignRepository.findByClickflareId(dto.getCampaignID())
-                    .orElseGet(() -> campaignRepository.save(Campaign.builder()
+                    .orElseGet(() -> {
+                        User user = userService.findByUsername(buyer);
+                        return campaignRepository.save(Campaign.builder()
                             .clickflareId(dto.getCampaignID())
                             .name(dto.getCampaignName())
                             .partner(partner)
                             .source(source)
-                            .build()));
+                            .user(user)
+                            .build());
+                    });
 
             // 4. DailyStats
             LocalDate reportDate = LocalDate.parse(dto.getDate());

@@ -1,6 +1,7 @@
 package com.project.service;
 
 import com.project.dto.DailyOverallStatsDto;
+import com.project.dto.DailyTotalDtoProjection;
 import com.project.entity.Campaign;
 import com.project.entity.DailyStats;
 import org.springframework.data.domain.Page;
@@ -21,216 +22,68 @@ public interface DailyStatsRepository extends JpaRepository<DailyStats, UUID> {
     List<DailyStats> findAllByDate(LocalDate date);
 
     Optional<DailyStats> findByCampaignAndDate(Campaign campaign, LocalDate date);
-
-    @Query(value = "SELECT new com.project.dto.DailyOverallStatsDto(ds.date, " +
-            "    SUM(ds.cost), " +
-            "    CASE WHEN LOCATE(' [', ds.campaign.partner.name) > 0 " +
-            "         THEN SUBSTRING(ds.campaign.partner.name, 1, LOCATE(' [', ds.campaign.partner.name) - 1) " +
-            "         ELSE ds.campaign.partner.name " +
-            "    END, " +
-            "    CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 " +
-            "         THEN SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1) " +
-            "         ELSE ds.campaign.source.name " +
-            "    END, " +
-            "    SUM(ds.revenue)) " +
-            "FROM DailyStats ds " +
-            "WHERE ds.date >= :start AND ds.date <= :end " +
-            "AND (CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 " +
-            "          THEN LOWER(SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1)) " +
-            "          ELSE LOWER(ds.campaign.source.name) " +
-            "     END) = LOWER(:trafficSourceNameBase) " +
-            "GROUP BY ds.date, ds.campaign.partner.name, ds.campaign.source.name " +
+    ///////////////////////////////////////////////////////
+    @Query(value = "SELECT ds.date, " +
+            "    SUM(ds.cost) as totalCost, " +
+            "    CASE WHEN position(' - ' in s.name) > 0 " +
+            "         THEN substring(s.name, 1, position(' - ' in s.name) - 1) " +
+            "         ELSE s.name " +
+            "    END as trafficSource, " +
+            "    CASE WHEN position(' [' in p.name) > 0 " +
+            "         THEN substring(p.name, 1, position(' [' in p.name) - 1) " +
+            "         ELSE p.name " +
+            "    END as partnerNetwork, " +
+            "    SUM(ds.revenue) as totalRevenue " +
+            "FROM daily_stats ds " +
+            "JOIN campaigns c ON c.id = ds.campaign_id " +
+            "JOIN sources s ON s.id = c.source_id " +
+            "JOIN partners p ON p.id = c.partner_id " +
+            "WHERE (:trafficSourceNameBase IS NULL OR " +
+            "       LOWER(CASE WHEN position(' - ' in s.name) > 0 " +
+            "                  THEN substring(s.name, 1, position(' - ' in s.name) - 1) " +
+            "                  ELSE s.name " +
+            "             END) = LOWER(:trafficSourceNameBase)) " +
+            "AND (CAST(:start AS DATE) IS NULL OR ds.date >= :start) " +
+            "AND (CAST(:end AS DATE) IS NULL OR ds.date <= :end) " +
+            "GROUP BY ds.date, s.name, p.name " +
             "ORDER BY ds.date",
-            countQuery = "SELECT count(ds.date) FROM DailyStats ds " +
-                    "WHERE ds.date >= :start AND ds.date <= :end " +
-                    "AND (CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 THEN LOWER(SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1)) ELSE LOWER(ds.campaign.source.name) END) = LOWER(:trafficSourceNameBase) " +
-                    "GROUP BY ds.date, CASE WHEN LOCATE(' [', ds.campaign.partner.name) > 0 THEN SUBSTRING(ds.campaign.partner.name, 1, LOCATE(' [', ds.campaign.partner.name) - 1) ELSE ds.campaign.partner.name END, CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 THEN SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1) ELSE ds.campaign.source.name END",
-            nativeQuery = false)
-    Page<DailyOverallStatsDto> findCombinedDailyStatsByTrafficSourceWithDates(@Param("start") LocalDate start,
-                                                                              @Param("end") LocalDate end,
-                                                                              @Param("trafficSourceNameBase") String trafficSourceNameBase,
-                                                                              Pageable pageable);
+            nativeQuery = true)
+    List<Object[]> findDailyAggregatedData(
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end,
+            @Param("trafficSourceNameBase") String trafficSourceNameBase
+    );
 
-    // Метод 2: З trafficSource, але БЕЗ ДАТ
-    @Query(value = "SELECT new com.project.dto.DailyOverallStatsDto(ds.date, " +
-            "    SUM(ds.cost), " +
-            "    CASE WHEN LOCATE(' [', ds.campaign.partner.name) > 0 " +
-            "         THEN SUBSTRING(ds.campaign.partner.name, 1, LOCATE(' [', ds.campaign.partner.name) - 1) " +
-            "         ELSE ds.campaign.partner.name " +
-            "    END, " +
-            "    CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 " +
-            "         THEN SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1) " +
-            "         ELSE ds.campaign.source.name " +
-            "    END, " +
-            "    SUM(ds.revenue)) " +
-            "FROM DailyStats ds " +
-            "WHERE (CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 " +
-            "          THEN LOWER(SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1)) " +
-            "          ELSE LOWER(ds.campaign.source.name) " +
-            "     END) = LOWER(:trafficSourceNameBase) " +
-            "GROUP BY ds.date, ds.campaign.partner.name, ds.campaign.source.name " +
-            "ORDER BY ds.date",
-            countQuery = "SELECT count(ds.date) FROM DailyStats ds " +
-                    "WHERE (CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 THEN LOWER(SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1)) ELSE LOWER(ds.campaign.source.name) END) = LOWER(:trafficSourceNameBase) " +
-                    "GROUP BY ds.date, CASE WHEN LOCATE(' [', ds.campaign.partner.name) > 0 THEN SUBSTRING(ds.campaign.partner.name, 1, LOCATE(' [', ds.campaign.partner.name) - 1) ELSE ds.campaign.partner.name END, CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 THEN SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1) ELSE ds.campaign.source.name END",
-            nativeQuery = false)
-    Page<DailyOverallStatsDto> findCombinedDailyStatsByTrafficSourceWithoutDates(@Param("trafficSourceNameBase") String trafficSourceNameBase,
-                                                                                 Pageable pageable);
-
-    // Метод 3: БЕЗ trafficSource, але з ДАТАМИ
-    @Query(value = "SELECT new com.project.dto.DailyOverallStatsDto(ds.date, " +
-            "    SUM(ds.cost), " +
-            "    CASE WHEN LOCATE(' [', ds.campaign.partner.name) > 0 " +
-            "         THEN SUBSTRING(ds.campaign.partner.name, 1, LOCATE(' [', ds.campaign.partner.name) - 1) " +
-            "         ELSE ds.campaign.partner.name " +
-            "    END, " +
-            "    CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 " +
-            "         THEN SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1) " +
-            "         ELSE ds.campaign.source.name " +
-            "    END, " +
-            "    SUM(ds.revenue)) " +
-            "FROM DailyStats ds " +
-            "WHERE ds.date >= :start AND ds.date <= :end " +
-            "GROUP BY ds.date, ds.campaign.partner.name, ds.campaign.source.name " +
-            "ORDER BY ds.date",
-            countQuery = "SELECT count(ds.date) FROM DailyStats ds " +
-                    "WHERE ds.date >= :start AND ds.date <= :end " +
-                    "GROUP BY ds.date, CASE WHEN LOCATE(' [', ds.campaign.partner.name) > 0 THEN SUBSTRING(ds.campaign.partner.name, 1, LOCATE(' [', ds.campaign.partner.name) - 1) ELSE ds.campaign.partner.name END, CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 THEN SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1) ELSE ds.campaign.source.name END",
-            nativeQuery = false)
-    Page<DailyOverallStatsDto> findAllCombinedDailyStatsWithDates(@Param("start") LocalDate start,
-                                                                  @Param("end") LocalDate end,
-                                                                  Pageable pageable);
-
-    // Метод 4: БЕЗ trafficSource і БЕЗ ДАТ
-    @Query(value = "SELECT new com.project.dto.DailyOverallStatsDto(ds.date, " +
-            "    SUM(ds.cost), " +
-            "    CASE WHEN LOCATE(' [', ds.campaign.partner.name) > 0 " +
-            "         THEN SUBSTRING(ds.campaign.partner.name, 1, LOCATE(' [', ds.campaign.partner.name) - 1) " +
-            "         ELSE ds.campaign.partner.name " +
-            "    END, " +
-            "    CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 " +
-            "         THEN SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1) " +
-            "         ELSE ds.campaign.source.name " +
-            "    END, " +
-            "    SUM(ds.revenue)) " +
-            "FROM DailyStats ds " +
-            "GROUP BY ds.date, ds.campaign.partner.name, ds.campaign.source.name " +
-            "ORDER BY ds.date",
-            countQuery = "SELECT count(ds.date) FROM DailyStats ds " +
-                    "GROUP BY ds.date, CASE WHEN LOCATE(' [', ds.campaign.partner.name) > 0 THEN SUBSTRING(ds.campaign.partner.name, 1, LOCATE(' [', ds.campaign.partner.name) - 1) ELSE ds.campaign.partner.name END, CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 THEN SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1) ELSE ds.campaign.source.name END",
-            nativeQuery = false)
-    Page<DailyOverallStatsDto> findAllCombinedDailyStatsWithoutDates(Pageable pageable);
-
-    ////////////////////////////////////////////////////////////////////////////////////////////
-
-    @Query(value = "SELECT new com.project.dto.DailyOverallStatsDto(ds.date, " +
-            "    SUM(ds.cost), " +
-            "    CASE WHEN LOCATE(' [', ds.campaign.partner.name) > 0 " +
-            "         THEN SUBSTRING(ds.campaign.partner.name, 1, LOCATE(' [', ds.campaign.partner.name) - 1) " +
-            "         ELSE ds.campaign.partner.name " +
-            "    END, " +
-            "    CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 " +
-            "         THEN SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1) " +
-            "         ELSE ds.campaign.source.name " +
-            "    END, " +
-            "    SUM(ds.revenue)) " +
-            "FROM DailyStats ds " +
-            "WHERE ds.campaign.user.id = :userId " +
-            "AND ds.date >= :start AND ds.date <= :end " +
-            "AND (CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 " +
-            "          THEN LOWER(SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1)) " +
-            "          ELSE LOWER(ds.campaign.source.name) " +
-            "     END) = LOWER(:trafficSourceNameBase) " +
-            "GROUP BY ds.date, ds.campaign.partner.name, ds.campaign.source.name " +
-            "ORDER BY ds.date",
-            countQuery = "SELECT count(ds.date) FROM DailyStats ds " +
-                    "WHERE ds.campaign.user.id = :userId " +
-                    "AND ds.date >= :start AND ds.date <= :end " +
-                    "AND (CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 THEN LOWER(SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1)) ELSE LOWER(ds.campaign.source.name) END) = LOWER(:trafficSourceNameBase) " +
-                    "GROUP BY ds.date, CASE WHEN LOCATE(' [', ds.campaign.partner.name) > 0 THEN SUBSTRING(ds.campaign.partner.name, 1, LOCATE(' [', ds.campaign.partner.name) - 1) ELSE ds.campaign.partner.name END, CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 THEN SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1) ELSE ds.campaign.source.name END",
-            nativeQuery = false)
-    Page<DailyOverallStatsDto> findCombinedDailyStatsForUserWithDates(@Param("userId") UUID userId,
-                                                                      @Param("start") LocalDate start,
-                                                                      @Param("end") LocalDate end,
-                                                                      @Param("trafficSourceNameBase") String trafficSourceNameBase,
-                                                                      Pageable pageable);
-
-    // 6. З trafficSource та userId, але БЕЗ ДАТ
-    @Query(value = "SELECT new com.project.dto.DailyOverallStatsDto(ds.date, " +
-            "    SUM(ds.cost), " +
-            "    CASE WHEN LOCATE(' [', ds.campaign.partner.name) > 0 " +
-            "         THEN SUBSTRING(ds.campaign.partner.name, 1, LOCATE(' [', ds.campaign.partner.name) - 1) " +
-            "         ELSE ds.campaign.partner.name " +
-            "    END, " +
-            "    CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 " +
-            "         THEN SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1) " +
-            "         ELSE ds.campaign.source.name " +
-            "    END, " +
-            "    SUM(ds.revenue)) " +
-            "FROM DailyStats ds " +
-            "WHERE ds.campaign.user.id = :userId " +
-            "AND (CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 " +
-            "          THEN LOWER(SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1)) " +
-            "          ELSE LOWER(ds.campaign.source.name) " +
-            "     END) = LOWER(:trafficSourceNameBase) " +
-            "GROUP BY ds.date, ds.campaign.partner.name, ds.campaign.source.name " +
-            "ORDER BY ds.date",
-            countQuery = "SELECT count(ds.date) FROM DailyStats ds " +
-                    "WHERE ds.campaign.user.id = :userId " +
-                    "AND (CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 THEN LOWER(SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1)) ELSE LOWER(ds.campaign.source.name) END) = LOWER(:trafficSourceNameBase) " +
-                    "GROUP BY ds.date, CASE WHEN LOCATE(' [', ds.campaign.partner.name) > 0 THEN SUBSTRING(ds.campaign.partner.name, 1, LOCATE(' [', ds.campaign.partner.name) - 1) ELSE ds.campaign.partner.name END, CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 THEN SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1) ELSE ds.campaign.source.name END",
-            nativeQuery = false)
-    Page<DailyOverallStatsDto> findCombinedDailyStatsForUserWithoutDates(@Param("userId") UUID userId,
-                                                                         @Param("trafficSourceNameBase") String trafficSourceNameBase,
-                                                                         Pageable pageable);
-
-    // 7. З датами та userId, але БЕЗ trafficSource
-    @Query(value = "SELECT new com.project.dto.DailyOverallStatsDto(ds.date, " +
-            "    SUM(ds.cost), " +
-            "    CASE WHEN LOCATE(' [', ds.campaign.partner.name) > 0 " +
-            "         THEN SUBSTRING(ds.campaign.partner.name, 1, LOCATE(' [', ds.campaign.partner.name) - 1) " +
-            "         ELSE ds.campaign.partner.name " +
-            "    END, " +
-            "    CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 " +
-            "         THEN SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1) " +
-            "         ELSE ds.campaign.source.name " +
-            "    END, " +
-            "    SUM(ds.revenue)) " +
-            "FROM DailyStats ds " +
-            "WHERE ds.campaign.user.id = :userId " +
-            "AND ds.date >= :start AND ds.date <= :end " +
-            "GROUP BY ds.date, ds.campaign.partner.name, ds.campaign.source.name " +
-            "ORDER BY ds.date",
-            countQuery = "SELECT count(ds.date) FROM DailyStats ds " +
-                    "WHERE ds.campaign.user.id = :userId " +
-                    "AND ds.date >= :start AND ds.date <= :end " +
-                    "GROUP BY ds.date, CASE WHEN LOCATE(' [', ds.campaign.partner.name) > 0 THEN SUBSTRING(ds.campaign.partner.name, 1, LOCATE(' [', ds.campaign.partner.name) - 1) ELSE ds.campaign.partner.name END, CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 THEN SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1) ELSE ds.campaign.source.name END",
-            nativeQuery = false)
-    Page<DailyOverallStatsDto> findAllCombinedDailyStatsForUserWithDates(@Param("userId") UUID userId,
-                                                                         @Param("start") LocalDate start,
-                                                                         @Param("end") LocalDate end,
-                                                                         Pageable pageable);
-
-    // 8. З userId, але БЕЗ ДАТ і trafficSource
-    @Query(value = "SELECT new com.project.dto.DailyOverallStatsDto(ds.date, " +
-            "    SUM(ds.cost), " +
-            "    CASE WHEN LOCATE(' [', ds.campaign.partner.name) > 0 " +
-            "         THEN SUBSTRING(ds.campaign.partner.name, 1, LOCATE(' [', ds.campaign.partner.name) - 1) " +
-            "         ELSE ds.campaign.partner.name " +
-            "    END, " +
-            "    CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 " +
-            "         THEN SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1) " +
-            "         ELSE ds.campaign.source.name " +
-            "    END, " +
-            "    SUM(ds.revenue)) " +
-            "FROM DailyStats ds " +
-            "WHERE ds.campaign.user.id = :userId " +
-            "GROUP BY ds.date, ds.campaign.partner.name, ds.campaign.source.name " +
-            "ORDER BY ds.date",
-            countQuery = "SELECT count(ds.date) FROM DailyStats ds " +
-                    "WHERE ds.campaign.user.id = :userId " +
-                    "GROUP BY ds.date, CASE WHEN LOCATE(' [', ds.campaign.partner.name) > 0 THEN SUBSTRING(ds.campaign.partner.name, 1, LOCATE(' [', ds.campaign.partner.name) - 1) ELSE ds.campaign.partner.name END, CASE WHEN LOCATE(' - ', ds.campaign.source.name) > 0 THEN SUBSTRING(ds.campaign.source.name, 1, LOCATE(' - ', ds.campaign.source.name) - 1) ELSE ds.campaign.source.name END",
-            nativeQuery = false)
-    Page<DailyOverallStatsDto> findAllCombinedDailyStatsForUserWithoutDates(@Param("userId") UUID userId,
-                                                                            Pageable pageable);
+    @Query(value = "SELECT ds.date, " +
+            "    SUM(ds.cost) as totalCost, " +
+            "    CASE WHEN position(' - ' in s.name) > 0 " +
+            "         THEN substring(s.name, 1, position(' - ' in s.name) - 1) " +
+            "         ELSE s.name " +
+            "    END as trafficSource, " +
+            "    CASE WHEN position(' [' in p.name) > 0 " +
+            "         THEN substring(p.name, 1, position(' [' in p.name) - 1) " +
+            "         ELSE p.name " +
+            "    END as partnerNetwork, " +
+            "    SUM(ds.revenue) as totalRevenue " +
+            "FROM daily_stats ds " +
+            "JOIN campaigns c ON c.id = ds.campaign_id " +
+            "JOIN sources s ON s.id = c.source_id " +
+            "JOIN partners p ON p.id = c.partner_id " + // Додали JOIN для таблиці партнерів
+            "WHERE c.user_id = :userId " +
+            "AND (:trafficSourceNameBase IS NULL OR " +
+            "       LOWER(CASE WHEN position(' - ' in s.name) > 0 " +
+            "                  THEN substring(s.name, 1, position(' - ' in s.name) - 1) " +
+            "                  ELSE s.name " +
+            "             END) = LOWER(:trafficSourceNameBase)) " +
+            "AND (CAST(:start AS DATE) IS NULL OR ds.date >= :start) " + // Явно приводимо тип
+            "AND (CAST(:end AS DATE) IS NULL OR ds.date <= :end) " + // Явно приводимо тип
+            "GROUP BY ds.date, s.name, p.name " + // Оновлюємо GROUP BY
+            "ORDER BY ds.date DESC",
+            nativeQuery = true)
+    List<Object[]> findDailyAggregatedDataForUser(
+            @Param("userId") UUID userId,
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end,
+            @Param("trafficSourceNameBase") String trafficSourceNameBase
+    );
 }

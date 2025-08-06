@@ -8,6 +8,7 @@ import com.project.entity.*;
 import com.project.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -32,7 +33,9 @@ public class ClickFlareDataSyncService {
     private final RateLimiter rateLimiter = RateLimiter.create(2.0);
     private final ExecutorService executor = Executors.newFixedThreadPool(5);
 
+    @Async
     public void syncDailyStats(LocalDate startDate, LocalDate endDate) {
+        System.out.println("Starting asynchronous sync from " + startDate + " to " + endDate);
         List<ReportItemDto> allItems = Collections.synchronizedList(new ArrayList<>());
         int pageSize = 1000;
 
@@ -68,6 +71,7 @@ public class ClickFlareDataSyncService {
 
         log.info("📊 Total collected items: {}", allItems.size());
         saveStats(allItems);
+        System.out.println("Async sync finished.");
     }
 
     private ClickFlareReportResponseDto fetchReport(LocalDate start, LocalDate end, int page, int pageSize) {

@@ -22,7 +22,7 @@ public class StatsController {
     private final StatsService statsService;
 
     @GetMapping("/total")
-    public Page<DailyOverallStatsDto> getDailyTotal(
+    public Page<DailyTotalDto> getDailyTotal(
             @RequestParam(value = "startDate", required = false) @DateTimeFormat(iso= DateTimeFormat.ISO.DATE) LocalDate start,
             @RequestParam(value = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end,
             @RequestParam(value = "trafficSource", required = false) String trafficSourceName,
@@ -31,12 +31,12 @@ public class StatsController {
     }
 
     @GetMapping("/{userID}")
-    public Page<DailyOverallStatsDto> getDailyTotalForUser(
+    public Page<DailyTotalDto> getDailyTotalForUser(
             @PathVariable UUID userID,
             @RequestParam(value = "startDate", required = false) @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate start,
             @RequestParam(value = "endDate", required = false) @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate end,
             @RequestParam(value = "trafficSource", required = false) String trafficSourceName,
-            @PageableDefault(size=50, page=0)  Pageable pageable){
+            @PageableDefault(size=30, page=0)  Pageable pageable){
         return statsService.getDailyTotalsForUser(userID, start, end, Optional.ofNullable(trafficSourceName), pageable);
     }
 }

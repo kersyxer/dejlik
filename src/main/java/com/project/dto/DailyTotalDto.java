@@ -14,6 +14,7 @@ import java.util.Map;
 @NoArgsConstructor
 public class DailyTotalDto {
     private LocalDate date;
+    private String trafficSource;
     private BigDecimal cost;
     private Map<String, BigDecimal> revenues = new HashMap<>();
 }

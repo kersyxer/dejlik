@@ -18,11 +18,11 @@ public class ClickFlareController {
     private final ClickFlareDataSyncService clickFlareService;
 
     @PostMapping("/sync")
-    public ResponseEntity<String> sync(
+    public ResponseEntity<Boolean> sync(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
     ) {
         clickFlareService.syncDailyStats(start, end);
-        return ResponseEntity.ok("Sync triggered from " + start + " to " + end + ". This process will run in the background.");
+        return ResponseEntity.accepted().body(true);
     }
 }

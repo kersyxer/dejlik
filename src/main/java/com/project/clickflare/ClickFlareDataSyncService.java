@@ -34,44 +34,51 @@ public class ClickFlareDataSyncService {
     private final ExecutorService executor = Executors.newFixedThreadPool(5);
 
     @Async
-    public void syncDailyStats(LocalDate startDate, LocalDate endDate) {
+    public CompletableFuture<Void> syncDailyStats(LocalDate startDate, LocalDate endDate) {
         System.out.println("Starting asynchronous sync from " + startDate + " to " + endDate);
         List<ReportItemDto> allItems = Collections.synchronizedList(new ArrayList<>());
         int pageSize = 1000;
 
         // Спочатку отримуємо загальну кількість
-        ClickFlareReportResponseDto firstResponse = fetchReport(startDate, endDate, 1, pageSize);
-        if (firstResponse == null || firstResponse.getItems() == null) {
-            log.warn("❌ Empty or null response from ClickFlare");
-            return;
+        try {
+            ClickFlareReportResponseDto firstResponse = fetchReport(startDate, endDate, 1, pageSize);
+            if (firstResponse == null || firstResponse.getItems() == null) {
+                log.warn("❌ Empty or null response from ClickFlare");
+                return CompletableFuture.completedFuture(null);
+            }
+            int total = firstResponse.getTotals().getCounter();
+            int totalPages = (int) Math.ceil((double) total / pageSize);
+
+            // Додаємо першу сторінку одразу
+            allItems.addAll(firstResponse.getItems());
+
+            // Всі інші сторінки паралельно
+            List<CompletableFuture<Void>> futures = new ArrayList<>();
+            for (int page = 2; page <= totalPages; page++) {
+                final int currentPage = page;
+                CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                    rateLimiter.acquire();
+                    ClickFlareReportResponseDto response = fetchReport(startDate, endDate, currentPage, pageSize);
+                    if (response != null && response.getItems() != null) {
+                        allItems.addAll(response.getItems());
+                        log.info("✅ Parsed page {} with {} items", currentPage, response.getItems().size());
+                    }
+                }, executor);
+                futures.add(future);
+            }
+
+            // Очікуємо завершення всіх потоків
+            return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .thenRun(() -> {
+                        log.info("📊 Total collected items: {}", allItems.size());
+                        saveStats(allItems);
+                        System.out.println("Async sync finished.");
+                    });
+        } catch (Exception e) {
+            log.error("❌ An error occurred during asynchronous sync: " + e.getMessage(), e);
+            // Повертаємо CompletableFuture з винятком
+            return CompletableFuture.failedFuture(e);
         }
-        int total = firstResponse.getTotals().getCounter();
-        int totalPages = (int) Math.ceil((double) total / pageSize);
-
-        // Додаємо першу сторінку одразу
-        allItems.addAll(firstResponse.getItems());
-
-        // Всі інші сторінки паралельно
-        List<CompletableFuture<Void>> futures = new ArrayList<>();
-        for (int page = 2; page <= totalPages; page++) {
-            final int currentPage = page;
-            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-                rateLimiter.acquire();
-                ClickFlareReportResponseDto response = fetchReport(startDate, endDate, currentPage, pageSize);
-                if (response != null && response.getItems() != null) {
-                    allItems.addAll(response.getItems());
-                    log.info("✅ Parsed page {} with {} items", currentPage, response.getItems().size());
-                }
-            }, executor);
-            futures.add(future);
-        }
-
-        // Очікуємо завершення всіх потоків
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-
-        log.info("📊 Total collected items: {}", allItems.size());
-        saveStats(allItems);
-        System.out.println("Async sync finished.");
     }
 
     private ClickFlareReportResponseDto fetchReport(LocalDate start, LocalDate end, int page, int pageSize) {

@@ -1,13 +1,11 @@
 package com.project.controller;
 
 import com.project.clickflare.ClickFlareDataSyncService;
+import com.project.dto.SyncRequestDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 
@@ -18,11 +16,8 @@ public class ClickFlareController {
     private final ClickFlareDataSyncService clickFlareService;
 
     @PostMapping("/sync")
-    public ResponseEntity<Boolean> sync(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
-    ) {
-        clickFlareService.syncDailyStats(start, end);
+    public ResponseEntity<Boolean> sync(@RequestBody SyncRequestDto syncRequestDto) {
+        clickFlareService.syncDailyStats(syncRequestDto.getStart(), syncRequestDto.getEnd());
         return ResponseEntity.accepted().body(true);
     }
 }

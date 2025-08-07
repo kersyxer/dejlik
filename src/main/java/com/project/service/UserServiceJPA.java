@@ -46,6 +46,14 @@ public class UserServiceJPA implements UserService{
         if (nameExists) {
             throw new UserException("Name already taken: " + user.getName());
         }
+        if("OWNER".equals(user.getRole())){
+            long ownerCount = em.createQuery("SELECT COUNT(u) FROM User u WHERE u.role = :role", Long.class)
+                    .setParameter("role", "OWNER")
+                    .getSingleResult();
+            if(ownerCount > 0){
+                throw new UserException("Owner already exists in the system.");
+            }
+        }
 
         String hashed = passwordEncoder.encode(user.getPassword());
         user.setPassword(hashed);
@@ -70,6 +78,9 @@ public class UserServiceJPA implements UserService{
         if (existing == null) {
             throw new UserException("User not found with id: " + id);
         }
+        if("OWNER".equals(existing.getRole())){
+            throw new UserException("Can't delete owner");
+        }
         em.remove(existing);
     }
 
@@ -78,6 +89,18 @@ public class UserServiceJPA implements UserService{
         User existing = em.find(User.class, id);
         if(existing == null){
             throw new UserException("User not found with id: " + id);
+        }
+
+        if ("OWNER".equals(role)) {
+            long ownerCount = em.createQuery("SELECT COUNT(u) FROM User u WHERE u.role = :role", Long.class)
+                    .setParameter("role", "OWNER")
+                    .getSingleResult();
+            if (ownerCount > 0 && !existing.getRole().equals("OWNER")) {
+                throw new UserException("Only one owner is allowed.");
+            }
+        }
+        if (existing.getRole().equals("OWNER")) {
+            throw new UserException("You cannot change the role of an owner.");
         }
 
         if (name != null && !name.isBlank()) {
